@@ -1,0 +1,30 @@
+name: Enviar alerta MFA a Slack cada hora
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # ⏰ Ejecuta cada hora en UTC
+  workflow_dispatch:     # Permite ejecución manual
+
+jobs:
+  enviar_alerta:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 🔄 Clonar repositorio
+      uses: actions/checkout@v3
+
+    - name: 🐍 Configurar Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 📦 Instalar dependencias
+      run: pip install requests openpyxl
+
+    - name: 🔐 Ejecutar script de eventos MFA
+      env:
+        CLIENT_ID: ${{ secrets.CLIENT_ID }}
+        CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+        TENANT_URL: ${{ secrets.TENANT_URL }}
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      run: python mfa_eventos_reports_post.py
