@@ -2,11 +2,9 @@ import os
 import requests
 import json
 from datetime import datetime, timedelta, timezone
-
-# 📦 Excel opcional
 from openpyxl import Workbook
 
-# 🔧 Variables desde entorno
+# 🔧 Variables desde entorno (GitHub Secrets)
 TENANT_URL = os.environ["TENANT_URL"]
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
@@ -49,7 +47,7 @@ data = resp.json()
 hits = data.get("response", {}).get("report", {}).get("hits", [])
 print(f"🔍 Se recibieron {len(hits)} eventos")
 
-# 📦 Exportar a Excel (opcional)
+# 📦 Exportar a Excel
 wb = Workbook()
 ws = wb.active
 ws.title = "Eventos MFA"
@@ -59,16 +57,28 @@ resumen = []
 for item in hits:
     src = item.get("_source", {})
     d = src.get("data", {})
+    raw_time = src.get("time")
+    readable_time = datetime.fromtimestamp(raw_time / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") if raw_time else "N/A"
+
     ws.append([
         d.get("username"),
         d.get("result"),
         d.get("mfamethod"),
-        src.get("time"),
+        readable_time,
         d.get("mfadevice"),
         d.get("origin"),
         d.get("realm")
     ])
-    resumen.append(f"- {d.get('username')} → {d.get('result')} via {d.get('mfamethod')}")
+    resumen.append(
+        f"*Usuario:* {d.get('username')}\n"
+        f"*Resultado:* {d.get('result')}\n"
+        f"*Método:* {d.get('mfamethod')}\n"
+        f"*Origen:* {d.get('origin')}\n"
+        f"*Dispositivo:* {d.get('mfadevice')}\n"
+        f"*Realm:* {d.get('realm')}\n"
+        f"*Timestamp:* {readable_time}\n"
+        "-----------------------------"
+    )
 
 output_file = "eventos_mfa.xlsx"
 wb.save(output_file)
@@ -77,16 +87,8 @@ print(f"📂 Eventos exportados a {output_file}")
 # 📤 Enviar resumen a Slack
 if resumen:
     mensaje = {
-        "text": f"🔐 Eventos MFA recientes ({len(resumen)}):\n" + "\n".join(resumen[:10])
+        "text": f"🔐 *Eventos MFA recientes ({len(resumen)}):*\n" + "\n".join(resumen[:10])
     }
 else:
     mensaje = {
-        "text": "🔕 No se detectaron eventos MFA en la última hora."
-    }
-
-resp = requests.post(SLACK_WEBHOOK_URL, data=json.dumps(mensaje), headers={"Content-Type": "application/json"})
-if resp.status_code == 200:
-    print("📤 Resumen enviado a Slack correctamente")
-else:
-    print(f"❌ Error al enviar a Slack: {resp.status_code}")
-    print(resp.text)
+        "text": "🔕 No se detectaron eventos MFA en la última hora
