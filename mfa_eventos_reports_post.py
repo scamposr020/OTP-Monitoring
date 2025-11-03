@@ -82,12 +82,12 @@ for item in hits:
 
 output_file = "eventos_mfa.xlsx"
 wb.save(output_file)
-print(f"📂 Eventos exportados a {output_file}")
+print(f" Eventos exportados a {output_file}")
 
 # 📤 Enviar resumen a Slack
 if resumen:
     mensaje = {
-        "text": f"🔐 *Eventos MFA recientes ({len(resumen)}):*\n" + "\n".join(resumen[:10])
+        "text": f" *Eventos MFA recientes ({len(resumen)}):*\n" + "\n".join(resumen[:10])
     }
 else:
     mensaje = {
