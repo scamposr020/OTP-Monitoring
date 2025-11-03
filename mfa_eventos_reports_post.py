@@ -51,12 +51,15 @@ total_mfa = 0
 success_count = 0
 sent_count = 0
 failure_count = 0
+detalles = []
 
 for item in hits:
     src = item.get("_source", {})
     d = src.get("data", {})
     method = d.get("mfamethod")
     result = d.get("result")
+    raw_time = src.get("time")
+    readable_time = datetime.fromtimestamp(raw_time / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") if raw_time else "N/A"
 
     if method == "Email OTP":
         total_mfa += 1
@@ -67,13 +70,26 @@ for item in hits:
         elif result == "failure":
             failure_count += 1
 
+    if len(detalles) < 5:  # mostrar solo los primeros 5 eventos
+        detalles.append(
+            f"*Usuario:* {d.get('username')}\n"
+            f"*Resultado:* {result}\n"
+            f"*Método:* {method}\n"
+            f"*Origen:* {d.get('origin')}\n"
+            f"*Dispositivo:* {d.get('mfadevice')}\n"
+            f"*Realm:* {d.get('realm')}\n"
+            f"*Timestamp:* {readable_time}\n"
+            "-----------------------------"
+        )
+
 # 📤 Enviar resumen a Slack
 mensaje = {
     "text": (
         f"*Eventos MFA recientes ({total_mfa}):*\n"
         f"• Email OTP - Success: {success_count}\n"
         f"• Email OTP - Sent: {sent_count}\n"
-        f"• Email OTP - Failure: {failure_count}"
+        f"• Email OTP - Failure: {failure_count}\n\n"
+        + "\n".join(detalles)
     )
 }
 
