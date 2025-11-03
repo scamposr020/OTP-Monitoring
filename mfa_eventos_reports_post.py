@@ -82,13 +82,21 @@ for item in hits:
 
 output_file = "eventos_mfa.xlsx"
 wb.save(output_file)
-print(f" Eventos exportados a {output_file}")
+print(f"📂 Eventos exportados a {output_file}")
 
 # 📤 Enviar resumen a Slack
 if resumen:
     mensaje = {
-        "text": f" *Eventos MFA recientes ({len(resumen)}):*\n" + "\n".join(resumen[:10])
+        "text": f"🔐 *Eventos MFA recientes ({len(resumen)}):*\n" + "\n".join(resumen[:10])
     }
 else:
     mensaje = {
-        "text": "🔕 No se detectaron eventos MFA en la última hora
+        "text": "🔕 No se detectaron eventos MFA en la última hora."
+    }
+
+resp = requests.post(SLACK_WEBHOOK_URL, data=json.dumps(mensaje), headers={"Content-Type": "application/json"})
+if resp.status_code == 200:
+    print("📤 Resumen enviado a Slack correctamente")
+else:
+    print(f"❌ Error al enviar a Slack: {resp.status_code}")
+    print(resp.text)
