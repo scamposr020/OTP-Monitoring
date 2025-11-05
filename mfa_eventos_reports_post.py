@@ -32,7 +32,7 @@ headers_api = {
 }
 params_latest = {
     "event_type": '"authentication"',
-    "size": 10,
+    "size": 100,
     "sort_order": "desc"
 }
 resp = requests.get(events_url, headers=headers_api, params=params_latest)
