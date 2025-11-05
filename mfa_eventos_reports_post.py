@@ -23,19 +23,26 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🔍 Consulta directa al endpoint /events
-events_url = f"{TENANT_URL}/v1.0/events"
+# 🔍 Construir URL con filtros embebidos
+events_url = (
+    f"{TENANT_URL}/v1.0/events"
+    "?event_type=\\\"authentication\\\""
+    "&filter_key=data.result"
+    "&filter_value=\\\"failure\\\""
+    "&from=1759671498000"
+    "&to=1762177098000"
+    "&range_type=time"
+    "&size=1000"
+    "&sort_order=desc"
+)
+
 headers_api = {
     "Authorization": f"Bearer {access_token}",
     "Accept": "application/json"
 }
-params = {
-    "event_type": '\\"authentication\\"',
-    "size": 50,
-    "sort_order": "desc"
-}
 
-resp = requests.get(events_url, headers=headers_api, params=params)
+# 📥 Solicitud directa
+resp = requests.get(events_url, headers=headers_api)
 resp.raise_for_status()
 data = resp.json()
 events = data.get("events", [])
