@@ -54,6 +54,11 @@ while page < max_pages:
     resp = requests.post(search_url, headers=headers_api, json=body)
     resp.raise_for_status()
     data = resp.json()
+    # Justo después de: data = resp.json()
+    import pprint
+    pp = pprint.PrettyPrinter(indent=2, width=120)
+    pp.pprint(data)
+
     hits = data.get("response", {}).get("report", {}).get("hits", [])
 
     if not hits:
