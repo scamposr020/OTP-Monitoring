@@ -30,63 +30,56 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🔍 Llamadas con paginación basada en "next"
-search_url = f"{TENANT_URL}/v1.0/reports/mfa_activity"
+# 🔍 Endpoint correcto para logs MFA detallados
+base_url = f"{TENANT_URL}/v1.1/audit/events"
 headers_api = {
     "Authorization": f"Bearer {access_token}",
-    "Accept": "application/json",
-    "Content-Type": "application/json"
+    "Accept": "application/json"
 }
 
-body = {
-    "range_type": "time",
-    "from": start_time.isoformat(),
-    "to": end_time.isoformat(),
-    "size": 500
-}
-
-all_hits = []
-page = 1
+# Paginación
+size = 500
+next_page = None
+all_events = []
 
 while True:
-    resp = requests.post(search_url, headers=headers_api, json=body)
+    params = {
+        "types": "MFAActivity",
+        "range_type": "time",
+        "from": start_time.isoformat(),
+        "to": end_time.isoformat(),
+        "size": size
+    }
+    if next_page:
+        params["next"] = next_page
+
+    resp = requests.get(base_url, headers=headers_api, params=params)
     resp.raise_for_status()
     data = resp.json()
 
-    report = data.get("response", {}).get("report", {})
-    hits = report.get("hits", [])
-    next_token = report.get("next")  # 👉 Aquí viene el token para la siguiente página
+    events = data.get("events", [])
+    all_events.extend(events)
 
-    print(f"📥 Página {page}: {len(hits)} eventos")
+    print(f"📥 Página con {len(events)} eventos (total {len(all_events)})")
 
-    if not hits:
+    next_page = data.get("next")
+    if not next_page or len(events) == 0:
         break
 
-    all_hits.extend(hits)
+print(f"🔍 Total eventos recibidos: {len(all_events)}")
 
-    # Si no hay más páginas, termina
-    if not next_token:
-        break
-
-    # Actualiza body para la siguiente página
-    body["next"] = next_token
-    page += 1
-
-print(f"🔍 Total eventos recibidos: {len(all_hits)}")
-
-# 📊 Procesar eventos
+# 📊 Procesar resultados
 total_mfa = 0
 success_count = 0
 sent_count = 0
 failure_count = 0
 detalles = []
 
-for item in all_hits:
-    src = item.get("_source", {})
-    d = src.get("data", {})
+for item in all_events:
+    d = item.get("data", {})
     method = d.get("mfamethod")
     result = d.get("result")
-    raw_time = src.get("time")
+    raw_time = item.get("time")
     readable_time = datetime.fromtimestamp(raw_time / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S") if raw_time else "N/A"
 
     if method == "Email OTP":
