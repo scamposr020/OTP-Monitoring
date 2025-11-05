@@ -47,9 +47,30 @@ resp = requests.get(events_url, headers=headers_api)
 resp.raise_for_status()
 data = resp.json()
 
-# 📤 Mostrar todo el contenido recibido
+# 📊 Filtrar eventos Email OTP y contar resultados
+events = data.get("events", [])
+email_otp_events = []
+success_count = 0
+sent_count = 0
+failure_count = 0
+
+for e in events:
+    d = e.get("data", {})
+    if d.get("mfamethod") == "Email OTP":
+        email_otp_events.append(e)
+        result = d.get("result")
+        if result == "success":
+            success_count += 1
+        elif result == "sent":
+            sent_count += 1
+        elif result == "failure":
+            failure_count += 1
+
+# 📤 Mostrar resumen
 print("\n⏱️ Rango de tiempo:")
 print("Inicio:", datetime.utcfromtimestamp(start_epoch / 1000))
 print("Fin:", datetime.utcfromtimestamp(end_epoch / 1000))
-print("\n🔍 Respuesta completa del endpoint /events:")
-print(json.dumps(data, indent=2))
+print(f"\n🔍 Total eventos Email OTP: {len(email_otp_events)}")
+print(f"✅ Success: {success_count}")
+print(f"📨 Sent: {sent_count}")
+print(f"❌ Failure: {failure_count}")
