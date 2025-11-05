@@ -7,12 +7,11 @@ from datetime import datetime, timedelta, timezone
 TENANT_URL = os.environ["TENANT_URL"]
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
-SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
-# 🕒 Rango de 1 hora exacta (UTC) en milisegundos
+# 🕒 Rango de 6 horas exactas (UTC) en milisegundos
 now = datetime.now(timezone.utc)
-end_dt = now.replace(minute=now.minute // 10 * 10, second=0, microsecond=0)
-start_dt = end_dt - timedelta(hours=1)
+end_dt = now.replace(minute=0, second=0, microsecond=0)
+start_dt = end_dt - timedelta(hours=6)
 start_epoch = int(start_dt.timestamp() * 1000)
 end_epoch = int(end_dt.timestamp() * 1000)
 
@@ -68,8 +67,8 @@ while page < max_pages:
     all_events.extend(events)
     print(f"📥 Página {page + 1}: {len(events)} eventos")
 
-    # 🔎 Imprimir los primeros 5 eventos sin filtrar
-    for i, e in enumerate(events[:5]):
+    # 🔎 Imprimir los primeros 10 eventos sin filtrar
+    for i, e in enumerate(events[:10]):
         print(f"\n🔎 Evento {i+1} sin filtrar:")
         print(json.dumps(e, indent=2))
 
