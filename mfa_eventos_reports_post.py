@@ -9,12 +9,12 @@ CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
-# 🕒 Rango de 1 hora exacta (UTC) en segundos
+# 🕒 Rango de 1 hora exacta (UTC) en milisegundos
 now = datetime.now(timezone.utc)
 end_dt = now.replace(minute=now.minute // 10 * 10, second=0, microsecond=0)
 start_dt = end_dt - timedelta(hours=1)
-start_epoch = int(start_dt.timestamp())
-end_epoch = int(end_dt.timestamp())
+start_epoch = int(start_dt.timestamp() * 1000)
+end_epoch = int(end_dt.timestamp() * 1000)
 
 # 🔐 Obtener token
 token_url = f"{TENANT_URL}/v1.0/endpoint/default/token"
