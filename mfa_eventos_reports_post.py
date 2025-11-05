@@ -39,7 +39,7 @@ headers_api = {
     "Accept": "application/json"
 }
 params_base = {
-    "event_type": '\\"authentication\\"',  # ← comillas escapadas como exige la documentación
+    "event_type": '\"authentication\"',  # ← comillas escapadas como exige la documentación
     "from": start_epoch,
     "to": end_epoch,
     "size": 100,
