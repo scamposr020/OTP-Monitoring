@@ -38,11 +38,10 @@ headers_api = {
     "Authorization": f"Bearer {access_token}",
     "Accept": "application/json"
 }
-params = {
-    "event_type": "authentication",
+params_base = {
     "from": start_epoch,
     "to": end_epoch,
-    "size": 500,
+    "size": 100,
     "sort_order": "asc"
 }
 all_events = []
@@ -52,12 +51,12 @@ after_id = None
 after_time = None
 
 while page < max_pages:
-    query_params = params.copy()
+    params = params_base.copy()
     if after_id and after_time:
-        query_params["after_id"] = after_id
-        query_params["after_time"] = after_time
+        params["after_id"] = after_id
+        params["after_time"] = after_time
 
-    resp = requests.get(events_url, headers=headers_api, params=query_params)
+    resp = requests.get(events_url, headers=headers_api, params=params)
     resp.raise_for_status()
     data = resp.json()
     events = data.get("events", [])
@@ -75,7 +74,7 @@ while page < max_pages:
 
 print(f"🔍 Total eventos recibidos: {len(all_events)}")
 
-# 📊 Contar eventos Email OTP
+# 📊 Filtrar y contar eventos MFA
 total_mfa = 0
 success_count = 0
 sent_count = 0
@@ -83,6 +82,9 @@ failure_count = 0
 detalles = []
 
 for e in all_events:
+    if e.get("event_category") != "authentication":
+        continue
+
     d = e.get("data", {})
     method = d.get("mfamethod")
     result = d.get("result")
