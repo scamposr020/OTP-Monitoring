@@ -52,11 +52,12 @@ after_id = None
 after_time = None
 
 while page < max_pages:
+    query_params = params.copy()
     if after_id and after_time:
-        params["after_id"] = after_id
-        params["after_time"] = after_time
+        query_params["after_id"] = after_id
+        query_params["after_time"] = after_time
 
-    resp = requests.get(events_url, headers=headers_api, params=params)
+    resp = requests.get(events_url, headers=headers_api, params=query_params)
     resp.raise_for_status()
     data = resp.json()
     events = data.get("events", [])
