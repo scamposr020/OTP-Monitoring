@@ -35,7 +35,7 @@ events_url = (
     f"{TENANT_URL}/v1.0/events?"
     f"event_type=\\\"authentication\\\""
     f"&from={start_epoch}&to={end_epoch}"
-    f"&size=500&sort_order=asc"
+    f"&size=100&sort_order=asc"
 )
 
 headers_api = {
@@ -47,13 +47,32 @@ resp = requests.get(events_url, headers=headers_api)
 resp.raise_for_status()
 data = resp.json()
 
-# 📤 Mostrar resumen y eventos
+# 📊 Obtener eventos y contar por resultado
 events = data.get("response", {}).get("events", {}).get("events", [])
+total_events = len(events)
+success_count = 0
+failure_count = 0
+sent_count = 0
+
+for e in events:
+    result = e.get("data", {}).get("result", "").strip().lower()
+    if result == "success":
+        success_count += 1
+    elif result == "failure":
+        failure_count += 1
+    elif result == "sent":
+        sent_count += 1
+
+# 📤 Mostrar resumen
 print("\n⏱️ Rango de tiempo (UTC):")
 print("Inicio:", start_dt)
 print("Fin:", now)
-print(f"\n🔍 Total eventos recibidos: {len(events)}")
+print(f"\n🔍 Total eventos recibidos: {total_events}")
+print(f"✅ Success: {success_count}")
+print(f"❌ Failure: {failure_count}")
+print(f"📨 Sent: {sent_count}")
 
+# 🧾 Mostrar eventos individuales (opcional)
 for i, e in enumerate(events):
     d = e.get("data", {})
     print(f"\n🔎 Evento {i+1}:")
