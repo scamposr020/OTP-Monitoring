@@ -56,9 +56,11 @@ failure_count = 0
 
 for e in events:
     d = e.get("data", {})
-    if d.get("mfamethod") == "Email OTP":
+    method = d.get("mfamethod")
+    result = d.get("result")
+
+    if method and method.strip().lower() == "email otp":
         email_otp_events.append(e)
-        result = d.get("result")
         if result == "success":
             success_count += 1
         elif result == "sent":
