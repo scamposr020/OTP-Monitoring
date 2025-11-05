@@ -36,6 +36,8 @@ events_url = (
     f"event_type=\\\"authentication\\\""
     f"&from={start_epoch}&to={end_epoch}"
     f"&size=100&sort_order=asc"
+    f"&range_type=time"
+    f"&size=1000"
 )
 
 headers_api = {
