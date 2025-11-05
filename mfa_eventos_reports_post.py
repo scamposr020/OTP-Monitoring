@@ -24,20 +24,18 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🕒 Rango de las últimas 5 horas (UTC) en milisegundos
-now = datetime.now(timezone.utc)
-start_dt = now - timedelta(hours=5)
+# 🕒 Rango de 5 horas de ayer (UTC): de 00:00 a 05:00
+today = datetime.now(timezone.utc).date()
+yesterday = today - timedelta(days=1)
+start_dt = datetime.combine(yesterday, datetime.min.time(), tzinfo=timezone.utc)
+end_dt = start_dt + timedelta(hours=5)
 start_epoch = int(start_dt.timestamp() * 1000)
-end_epoch = int(now.timestamp() * 1000)
+end_epoch = int(end_dt.timestamp() * 1000)
 
 # 🔍 Consulta directa al endpoint /events con event_type y rango de tiempo
 events_url = (
     f"{TENANT_URL}/v1.0/events?"
     f"event_type=\\\"authentication\\\""
-    f"&from=1759671498000&to=1762177098000"
-    f"&range_type=time"
-    f"&size=1000"
-    f"&sort_order=desc"
 )
 
 headers_api = {
@@ -51,9 +49,9 @@ data = resp.json()
 
 # 📤 Mostrar resumen y eventos
 events = data.get("events", [])
-print("\n⏱️ Rango de tiempo:")
-print("Inicio:", datetime.utcfromtimestamp(start_epoch / 1000))
-print("Fin:", datetime.utcfromtimestamp(end_epoch / 1000))
+print("\n⏱️ Rango de tiempo (UTC):")
+print("Inicio:", start_dt)
+print("Fin:", end_dt)
 print(f"\n🔍 Total eventos recibidos: {len(events)}")
 
 for i, e in enumerate(events):
