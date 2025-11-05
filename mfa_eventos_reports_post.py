@@ -47,20 +47,4 @@ resp = requests.get(events_url, headers=headers_api)
 resp.raise_for_status()
 data = resp.json()
 
-# 📤 Mostrar resumen y eventos
-events = data.get("events", [])
-print("\n⏱️ Rango de tiempo (UTC):")
-print("Inicio:", start_dt)
-print("Fin:", end_dt)
-print(f"\n🔍 Total eventos recibidos: {len(events)}")
-
-for i, e in enumerate(events):
-    d = e.get("data", {})
-    print(f"\n🔎 Evento {i+1}:")
-    print(f"Usuario: {d.get('username')}")
-    print(f"Resultado: {d.get('result')}")
-    print(f"Método MFA: {d.get('mfamethod')}")
-    print(f"Origen: {d.get('origin')}")
-    print(f"Realm: {d.get('realm')}")
-    print(f"Dispositivo: {d.get('mfadevice')}")
-    print(f"Timestamp: {datetime.utcfromtimestamp(e.get('time') / 1000)}")
+print(json.dumps(data, indent=2))
