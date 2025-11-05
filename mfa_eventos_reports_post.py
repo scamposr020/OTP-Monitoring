@@ -1,19 +1,11 @@
 import os
 import requests
 import json
-from datetime import datetime, timedelta, timezone
 
 # 🔧 Variables desde entorno
 TENANT_URL = os.environ["TENANT_URL"]
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
-
-# 🕒 Rango de 1 hora (UTC) en milisegundos
-now = datetime.now(timezone.utc)
-end_dt = now.replace(minute=0, second=0, microsecond=0)
-start_dt = end_dt - timedelta(hours=1)
-start_epoch = int(start_dt.timestamp() * 1000)
-end_epoch = int(end_dt.timestamp() * 1000)
 
 # 🔐 Obtener token
 token_url = f"{TENANT_URL}/v1.0/endpoint/default/token"
@@ -31,7 +23,7 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🔍 Solicitud mínima al endpoint /events
+# 🔍 Consulta directa al endpoint /events
 events_url = f"{TENANT_URL}/v1.0/events"
 headers_api = {
     "Authorization": f"Bearer {access_token}",
@@ -39,10 +31,8 @@ headers_api = {
 }
 params = {
     "event_type": '\\"authentication\\"',
-    "from": start_epoch,
-    "to": end_epoch,
     "size": 50,
-    "sort_order": "asc"
+    "sort_order": "desc"
 }
 
 resp = requests.get(events_url, headers=headers_api, params=params)
