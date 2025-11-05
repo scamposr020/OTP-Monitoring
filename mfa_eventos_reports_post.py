@@ -11,7 +11,6 @@ CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 token_url = f"{TENANT_URL}/v1.0/endpoint/default/token"
 payload = {
     "grant_type": "client_credentials",
-    "scope": "verify:events.read",
     "client_id": CLIENT_ID,
     "client_secret": CLIENT_SECRET
 }
@@ -26,9 +25,8 @@ access_token = resp.json()["access_token"]
 # 🔍 Construir URL con filtros embebidos
 events_url = (
     f"{TENANT_URL}/v1.0/events"
-    "?event_type=\\\"authentication\\\""
+    "?event_type=\"authentication\""
     "&filter_key=data.result"
-    "&range_type=time"
     "&size=1000"
     "&sort_order=desc"
 )
@@ -47,4 +45,3 @@ events = data.get("events", [])
 print(f"\n🔍 Total eventos recibidos: {len(events)}")
 for i, e in enumerate(events[:3]):
     print(f"\n🔎 Evento {i+1}:")
-    print(json.dumps(e, indent=2))
