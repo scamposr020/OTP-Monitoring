@@ -3,10 +3,16 @@ import requests
 import json
 from datetime import datetime, timedelta, timezone
 
-# 🔧 Variables desde entorno
+# 🔧 Configuración desde entorno
 TENANT_URL = os.environ["TENANT_URL"]
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
+
+# 📅 Rango de fechas (últimos 7 días)
+now = datetime.now(timezone.utc)
+start_dt = now - timedelta(days=7)
+start_epoch = int(start_dt.timestamp() * 1000)
+end_epoch = int(now.timestamp() * 1000)
 
 # 🔐 Obtener token
 token_url = f"{TENANT_URL}/v1.0/endpoint/default/token"
@@ -24,7 +30,7 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🔍 Consulta al endpoint /reports/mfa_activity (POST)
+# 🔍 Inicializar exportación
 report_url = f"{TENANT_URL}/v1.0/reports/mfa_activity"
 headers_api = {
     "Authorization": f"Bearer {access_token}",
@@ -32,21 +38,58 @@ headers_api = {
     "Content-Type": "application/json"
 }
 
-# Opcional: incluir rango de tiempo o filtros
-now = datetime.now(timezone.utc)
-start = int((now - timedelta(days=7)).timestamp() * 1000)
-end = int(now.timestamp() * 1000)
-body = {
-    "from": start,
-    "to": end,
-    "size": 100,
-    "sort_order": "desc"
-}
+# 📥 Parámetros iniciales
+SIZE = 1000
+from_value = start_epoch
+to_value = end_epoch
+sort_order = "asc"
+sort_by = "time"
+all_records = []
+last_id = None
+total_expected = None
 
-resp = requests.post(report_url, headers=headers_api, json=body)
-resp.raise_for_status()
-data = resp.json()
+while True:
+    body = {
+        "FROM": str(from_value),
+        "TO": str(to_value),
+        "SIZE": str(SIZE),
+        "SORT_BY": sort_by,
+        "SORT_ORDER": sort_order
+    }
 
-# 📤 Mostrar todo el contenido recibido
-print("\n🔍 Respuesta completa del endpoint /reports/mfa_activity:")
-print(json.dumps(data, indent=2))
+    resp = requests.post(report_url, headers=headers_api, json=body)
+    resp.raise_for_status()
+    data = resp.json()
+
+    report = data.get("response", {}).get("report", {})
+    hits = report.get("hits", [])
+    total = report.get("total", 0)
+
+    if total_expected is None:
+        total_expected = total
+        print(f"📊 Total esperado: {total_expected}")
+
+    if not hits:
+        print("⚠️ No se recibieron más registros.")
+        break
+
+    for record in hits:
+        if last_id != record["sort"][1]:
+            all_records.append(record)
+        else:
+            print("⚠️ Registro duplicado detectado, omitido.")
+
+    last_sort = hits[-1]["sort"]
+    from_value = last_sort[0]
+    last_id = last_sort[1]
+
+    print(f"📥 Registros acumulados: {len(all_records)}")
+
+    if len(all_records) >= total_expected:
+        print("✅ Todos los registros han sido recuperados.")
+        break
+
+# 📤 Exportar a archivo JSON (opcional)
+with open("mfa_activity_full.json", "w", encoding="utf-8") as f:
+    json.dump(all_records, f, indent=2)
+    print("📁 Archivo exportado: mfa_activity_full.json")
