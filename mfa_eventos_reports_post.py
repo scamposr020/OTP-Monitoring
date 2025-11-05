@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+from datetime import datetime, timedelta, timezone
 
 # 🔧 Variables desde entorno
 TENANT_URL = os.environ["TENANT_URL"]
@@ -23,15 +24,26 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🔍 Consulta directa al endpoint /reports/mfa_activity
+# 🔍 Consulta al endpoint /reports/mfa_activity (POST)
 report_url = f"{TENANT_URL}/v1.0/reports/mfa_activity"
-
 headers_api = {
     "Authorization": f"Bearer {access_token}",
-    "Accept": "application/json"
+    "Accept": "application/json",
+    "Content-Type": "application/json"
 }
 
-resp = requests.get(report_url, headers=headers_api)
+# Opcional: incluir rango de tiempo o filtros
+now = datetime.now(timezone.utc)
+start = int((now - timedelta(days=7)).timestamp() * 1000)
+end = int(now.timestamp() * 1000)
+body = {
+    "from": start,
+    "to": end,
+    "size": 100,
+    "sort_order": "desc"
+}
+
+resp = requests.post(report_url, headers=headers_api, json=body)
 resp.raise_for_status()
 data = resp.json()
 
