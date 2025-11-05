@@ -9,7 +9,7 @@ CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
 SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]
 
-# 🕒 Definir rango de 1 hora exacta (UTC)
+# 🕒 Rango de 1 hora exacta (UTC)
 now = datetime.now(timezone.utc)
 end_time = now.replace(minute=now.minute // 10 * 10, second=0, microsecond=0)
 start_time = end_time - timedelta(hours=1)
@@ -30,7 +30,7 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🔍 Inicializar paginación por desplazamiento
+# 🔍 Inicializar paginación con search_after
 search_url = f"{TENANT_URL}/v1.0/reports/mfa_activity"
 headers_api = {
     "Authorization": f"Bearer {access_token}",
@@ -38,18 +38,18 @@ headers_api = {
     "Content-Type": "application/json"
 }
 all_hits = []
+search_after = None
+max_pages = 20
 page = 0
-size = 500
-max_pages = 10
 
 while page < max_pages:
     body = {
         "range_type": "time",
         "from": start_time.isoformat(),
-        "to": end_time.isoformat(),
-        "size": size,
-        "from": page * size
+        "to": end_time.isoformat()
     }
+    if search_after:
+        body["search_after"] = search_after
 
     resp = requests.post(search_url, headers=headers_api, json=body)
     resp.raise_for_status()
@@ -61,9 +61,11 @@ while page < max_pages:
 
     all_hits.extend(hits)
     print(f"📥 Página {page + 1}: {len(hits)} eventos")
-    if len(hits) < size:
-        break
 
+    last_sort = hits[-1].get("sort")
+    if not last_sort:
+        break
+    search_after = last_sort
     page += 1
 
 print(f"🔍 Total eventos recibidos: {len(all_hits)}")
@@ -103,20 +105,19 @@ for item in all_hits:
         "-----------------------------"
     )
 
-# 📤 Enviar resumen completo a Slack
-mensaje = {
-    "text": (
-        f"*Eventos MFA recientes ({total_mfa}) entre {start_time.strftime('%H:%M')} y {end_time.strftime('%H:%M')} UTC:*\n"
+# 📤 Enviar resumen en bloques de 20 eventos
+bloques = [detalles[i:i+20] for i in range(0, len(detalles), 20)]
+for i, bloque in enumerate(bloques):
+    texto = (
+        f"*Eventos MFA recientes ({total_mfa}) entre {start_time.strftime('%H:%M')} y {end_time.strftime('%H:%M')} UTC (bloque {i+1}/{len(bloques)}):*\n"
         f"• Email OTP - Success: {success_count}\n"
         f"• Email OTP - Sent: {sent_count}\n"
         f"• Email OTP - Failure: {failure_count}\n\n"
-        + "\n".join(detalles)
+        + "\n".join(bloque)
     )
-}
-
-resp = requests.post(SLACK_WEBHOOK_URL, data=json.dumps(mensaje), headers={"Content-Type": "application/json"})
-if resp.status_code == 200:
-    print("📤 Resumen enviado a Slack correctamente")
-else:
-    print(f"❌ Error al enviar a Slack: {resp.status_code}")
-    print(resp.text)
+    resp = requests.post(SLACK_WEBHOOK_URL, data=json.dumps({"text": texto}), headers={"Content-Type": "application/json"})
+    if resp.status_code == 200:
+        print(f"📤 Bloque {i+1} enviado a Slack")
+    else:
+        print(f"❌ Error al enviar bloque {i+1}: {resp.status_code}")
+        print(resp.text)
