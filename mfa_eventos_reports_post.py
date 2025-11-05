@@ -35,9 +35,9 @@ events_url = (
     f"{TENANT_URL}/v1.0/events?"
     f"event_type=\\\"authentication\\\""
     f"&from=1759671498000&to=1762177098000"
-    f"&size=100&sort_order=asc"
     f"&range_type=time"
     f"&size=1000"
+    f"&sort_order=desc"
 )
 
 headers_api = {
