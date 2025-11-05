@@ -24,12 +24,11 @@ resp = requests.post(token_url, data=payload, headers=headers_token)
 resp.raise_for_status()
 access_token = resp.json()["access_token"]
 
-# 🕒 Calcular rango de hace 2 horas (UTC) en milisegundos
+# 🕒 Calcular rango de la última hora (UTC) en milisegundos
 now = datetime.now(timezone.utc)
-end_dt = now - timedelta(hours=1)
-start_dt = now - timedelta(hours=2)
+start_dt = now - timedelta(hours=1)
 start_epoch = int(start_dt.timestamp() * 1000)
-end_epoch = int(end_dt.timestamp() * 1000)
+end_epoch = int(now.timestamp() * 1000)
 
 # 🔍 Consulta directa al endpoint /events con event_type y rango de tiempo
 events_url = (
