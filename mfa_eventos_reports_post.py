@@ -46,12 +46,10 @@ params_base = {
     "sort_order": "asc"
 }
 all_events = []
-max_pages = 20
-page = 0
 after_id = None
 after_time = None
 
-while page < max_pages:
+while True:
     params = params_base.copy()
     if after_id and after_time:
         params["after_id"] = after_id
@@ -63,16 +61,12 @@ while page < max_pages:
     events = data.get("events", [])
 
     if not events:
-        print("⚠️ No se recibieron eventos en esta página.")
         break
 
     all_events.extend(events)
-    print(f"📥 Página {page + 1}: {len(events)} eventos")
-
     last = events[-1]
     after_id = last.get("id")
     after_time = last.get("time")
-    page += 1
 
 print(f"\n🔍 Total eventos recibidos: {len(all_events)}")
 
