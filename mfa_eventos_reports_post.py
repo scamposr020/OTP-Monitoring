@@ -1,12 +1,12 @@
 import os
 import requests
-import json
 from datetime import datetime, timedelta, timezone
 
 # 🔧 Variables desde entorno
 TENANT_URL = os.environ["TENANT_URL"]
 CLIENT_ID = os.environ["CLIENT_ID"]
 CLIENT_SECRET = os.environ["CLIENT_SECRET"]
+SLACK_WEBHOOK_URL = os.environ["SLACK_WEBHOOK_URL"]  # debe estar configurado
 
 # 🔐 Obtener token
 token_url = f"{TENANT_URL}/v1.0/endpoint/default/token"
@@ -30,56 +30,42 @@ start_dt = now - timedelta(hours=1)
 start_epoch = int(start_dt.timestamp() * 1000)
 end_epoch = int(now.timestamp() * 1000)
 
-# 🔍 Consulta directa al endpoint /events con event_type y rango de tiempo
+# 🔍 Consulta al endpoint /events
 events_url = (
     f"{TENANT_URL}/v1.0/events?"
     f"event_type=\\\"authentication\\\""
     f"&from={start_epoch}&to={end_epoch}"
-    f"&size=500&sort_order=asc"
+    f"&size=100&sort_order=asc"
 )
-
 headers_api = {
     "Authorization": f"Bearer {access_token}",
     "Accept": "application/json"
 }
-
 resp = requests.get(events_url, headers=headers_api)
 resp.raise_for_status()
 data = resp.json()
 
-# 📊 Obtener eventos y contar por resultado
+# 📊 Conteo de eventos
 events = data.get("response", {}).get("events", {}).get("events", [])
-total_events = len(events)
-success_count = 0
-failure_count = 0
-sent_count = 0
+total = len(events)
+success = sum(1 for e in events if e.get("data", {}).get("result", "").lower() == "success")
+failure = sum(1 for e in events if e.get("data", {}).get("result", "").lower() == "failure")
+sent = sum(1 for e in events if e.get("data", {}).get("result", "").lower() == "sent")
 
-for e in events:
-    result = e.get("data", {}).get("result", "").strip().lower()
-    if result == "success":
-        success_count += 1
-    elif result == "failure":
-        failure_count += 1
-    elif result == "sent":
-        sent_count += 1
+# 📝 Formato del mensaje
+summary = (
+    f"*Resumen de eventos MFA (última hora UTC)*\n"
+    f"🕒 Desde: {start_dt.strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
+    f"🕒 Hasta: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
+    f"🔍 Total eventos: *{total}*\n"
+    f"✅ Success: *{success}*\n"
+    f"❌ Failure: *{failure}*\n"
+    f"📨 Sent: *{sent}*"
+)
 
-# 📤 Mostrar resumen
-print("\n⏱️ Rango de tiempo (UTC):")
-print("Inicio:", start_dt)
-print("Fin:", now)
-print(f"\n🔍 Total eventos recibidos: {total_events}")
-print(f"✅ Success: {success_count}")
-print(f"❌ Failure: {failure_count}")
-print(f"📨 Sent: {sent_count}")
+# 📤 Enviar a Slack
+slack_payload = {"text": summary}
+slack_resp = requests.post(SLACK_WEBHOOK_URL, json=slack_payload)
+slack_resp.raise_for_status()
 
-# 🧾 Mostrar eventos individuales (opcional)
-for i, e in enumerate(events):
-    d = e.get("data", {})
-    print(f"\n🔎 Evento {i+1}:")
-    print(f"Usuario: {d.get('username')}")
-    print(f"Resultado: {d.get('result')}")
-    print(f"Método MFA: {d.get('mfamethod')}")
-    print(f"Origen: {d.get('origin')}")
-    print(f"Realm: {d.get('realm')}")
-    print(f"Dispositivo: {d.get('mfadevice')}")
-    print(f"Timestamp: {datetime.utcfromtimestamp(e.get('time') / 1000)}")
+print("✅ Resumen enviado a Slack correctamente.")
