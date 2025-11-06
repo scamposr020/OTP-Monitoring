@@ -41,7 +41,7 @@ events_url = (
     f"{TENANT_URL}/v1.0/events?"
     f"event_type=\\\"authentication\\\""
     f"&from={start_epoch}&to={end_epoch}"
-    f"&size=100&sort_order=asc"
+    f"&size=700&sort_order=asc"
 )
 headers_api = {
     "Authorization": f"Bearer {access_token}",
