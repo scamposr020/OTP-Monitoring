@@ -28,3 +28,15 @@ jobs:
         TENANT_URL: ${{ secrets.TENANT_URL }}
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: python mfa_eventos_reports_post.py
+
+  update-last-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Save timestamp
+        run: echo "$(date -u +%s)" > last_run.txt
+  
+      - name: Commit last run timestamp
+        uses: actions/upload-artifact@v4
+        with:
+          name: last-run
+          path: last_run.txt
