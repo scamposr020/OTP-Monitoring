@@ -2,7 +2,7 @@ name: Self-Healing Scheduler
 
 on:
   schedule:
-    - cron: "*/16 * * * *"  # every five minutes verifies that main job has run
+    - cron: "*/16 * * * *"  # every 16 minutes verifies that main job has run
 
 permissions:
   actions: write
