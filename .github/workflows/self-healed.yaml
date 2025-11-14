@@ -13,46 +13,5 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download last run timestamp artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: last-run
-          path: .
-        continue-on-error: true
-
-      - name: Check if artifact exists
-        id: exists
-        run: |
-          if [ -f last_run.txt ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Determine if recovery is needed
-        id: check
-        run: |
-          if [ ! -f last_run.txt ]; then
-            echo "last_run=0" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          LAST_RUN=$(cat last_run.txt)
-          NOW=$(date -u +%s)
-          DIFF=$((NOW - LAST_RUN))
-
-          echo "Last execution was ${DIFF} seconds"
-
-          if [ $DIFF -gt 3600 ]; then
-            echo "needs_recovery=true" >> $GITHUB_OUTPUT
-          else
-            echo "needs_recovery=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Trigger the main workflow
-        if: steps.check.outputs.needs_recovery == 'true'
-        run: |
-          echo "Triggering MFA alert manually..."
-          gh workflow run "mfa-alert.yml"  # nombre exacto del workflow
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       - name: List Artifacts
+         run: ls /opt
