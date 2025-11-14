@@ -29,7 +29,7 @@ now_utc = datetime.now(timezone.utc)
 start_utc = now_utc - timedelta(hours=1)
 
 # Convert to EST (UTC-5)
-EST = timezone(timedelta(hours=-5))
+EST = timezone(timedelta(hours=-6))
 start_est = start_utc.astimezone(EST)
 end_est = now_utc.astimezone(EST)
 
