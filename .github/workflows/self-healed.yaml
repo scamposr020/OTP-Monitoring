@@ -2,16 +2,36 @@ name: Self-Healing Scheduler
 
 on:
   schedule:
-    - cron: "*/16 * * * *"  # every 16 minutes verifies that main job has run
-
-permissions:
-  actions: write
-  contents: read
+    - cron: '10 * * * *'   # ⏰ Runs every hour, 10 minutes after the main job
+  workflow_dispatch:
 
 jobs:
-  self-heal:
+  verify_mfa_job:
     runs-on: ubuntu-latest
 
     steps:
-       - name: List Artifacts
-         run: ls /opt
+    - name: 🔄 Checkout repository
+      uses: actions/checkout@v3
+
+    - name: 📥 Download last-run artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: last-run
+        path: ./artifacts
+
+    - name: 📖 Read timestamp and verify
+      run: |
+        echo "🔍 Checking last execution timestamp..."
+        LAST_RUN=$(cat ./artifacts/last_run.txt)
+        NOW=$(date -u +%s)
+        AGE=$((NOW - LAST_RUN))
+        MAX_AGE=$((90 * 60))  # 90 minutes in seconds
+
+        echo "🕒 Last run was $AGE seconds ago"
+
+        if [ "$AGE" -gt "$MAX_AGE" ]; then
+          echo "⚠️ MFA job has not run in the last 90 minutes. Please investigate."
+          exit 1
+        else
+          echo "✅ MFA job executed recently: $(date -u -d @$LAST_RUN)"
+        fi
