@@ -14,9 +14,10 @@ jobs:
       uses: actions/checkout@v3
 
     - name: 📖 Check last run via GitHub API
+      id: check_run
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WORKFLOW_FILE: mfa_alert.yml   # name of the workflow file of the main job
+        WORKFLOW_FILE: mfa_alert.yml   # filename or numeric workflow ID of the main job
         MAX_AGE_MINUTES: '90'
       run: |
         echo "🔍 Checking last run of workflow $WORKFLOW_FILE ..."
@@ -24,22 +25,19 @@ jobs:
         OWNER=$(echo $OWNER_REPO | cut -d'/' -f1)
         REPO=$(echo $OWNER_REPO | cut -d'/' -f2)
 
-        # Query workflow runs
         RESPONSE=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
           -H "Accept: application/vnd.github+json" \
           "https://api.github.com/repos/$OWNER/$REPO/actions/workflows/$WORKFLOW_FILE/runs?per_page=5")
 
-        # Extract latest successful run start time
         LAST_RUN=$(echo "$RESPONSE" | jq -r '.workflow_runs[] | select(.status=="completed" and .conclusion=="success") | .run_started_at' | head -n1)
 
         if [ -z "$LAST_RUN" ]; then
           echo "⚠️ No successful runs found for workflow $WORKFLOW_FILE"
-          exit 1
+          echo "trigger_main=true" >> $GITHUB_OUTPUT
+          exit 0
         fi
 
         echo "🕒 Last successful run started at: $LAST_RUN"
-
-        # Convert to epoch
         LAST_RUN_EPOCH=$(date -u -d "$LAST_RUN" +%s)
         NOW_EPOCH=$(date -u +%s)
         AGE=$(( (NOW_EPOCH - LAST_RUN_EPOCH) / 60 ))
@@ -48,7 +46,25 @@ jobs:
 
         if [ "$AGE" -gt "$MAX_AGE_MINUTES" ]; then
           echo "⚠️ Workflow $WORKFLOW_FILE has not run successfully in the last $MAX_AGE_MINUTES minutes."
-          exit 1
+          echo "trigger_main=true" >> $GITHUB_OUTPUT
         else
           echo "✅ Workflow $WORKFLOW_FILE executed successfully within the last $MAX_AGE_MINUTES minutes."
+          echo "trigger_main=false" >> $GITHUB_OUTPUT
         fi
+
+    - name: 🚀 Trigger main workflow if needed
+      if: steps.check_run.outputs.trigger_main == 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WORKFLOW_FILE: mfa_alert.yml   # filename or numeric workflow ID of the main job
+      run: |
+        echo "🚀 Triggering workflow $WORKFLOW_FILE ..."
+        OWNER_REPO="${{ github.repository }}"
+        OWNER=$(echo $OWNER_REPO | cut -d'/' -f1)
+        REPO=$(echo $OWNER_REPO | cut -d'/' -f2)
+
+        curl -X POST \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/repos/$OWNER/$REPO/actions/workflows/$WORKFLOW_FILE/dispatches \
+          -d '{"ref":"main"}'
