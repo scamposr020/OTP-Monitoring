@@ -16,7 +16,7 @@ jobs:
     - name: 📖 Check last run via GitHub API
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WORKFLOW_FILE: enviar-alerta-mfa.yml   # name of the workflow file of the main job
+        WORKFLOW_FILE: mfa_alert.yml   # name of the workflow file of the main job
         MAX_AGE_MINUTES: '90'
       run: |
         echo "🔍 Checking last run of workflow $WORKFLOW_FILE ..."
