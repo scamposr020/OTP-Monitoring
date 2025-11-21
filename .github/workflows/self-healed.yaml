@@ -2,7 +2,7 @@ name: Verify MFA job execution via API
 
 on:
   schedule:
-    - cron: '10 * * * *'   # ⏰ Runs every hour, 10 minutes after the main job
+    - cron: '10,40 * * * *'   # ⏰ Runs every 30 minutes, 10 minutes after the main job
   workflow_dispatch:
 
 jobs:
